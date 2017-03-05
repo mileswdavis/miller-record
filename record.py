@@ -70,6 +70,65 @@ record_process.terminate()
 print ("!!!!!!!!!!!!!!! Recording Finished !!!!!!!!!!!!!!!")
 print ()
 
+spinner = itertools.cycle(['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'])
+
+cd_burn_success = False
+while not cd_burn_success:
+	disc_check_process = subprocess.Popen(["drutil atip"], stdout=subprocess.PIPE, shell=True)
+	out, err = disc_check_process.communicate()
+	out = out.decode('utf-8')
+
+	if not out:
+		print ("--------------------------------------------------------")
+		print ("| A disc drive is not connected. Please reconnect the  |")
+		print ("| drive if you would like to burn an audio CD.         |")
+		print ("--------------------------------------------------------")
+		print ()
+	elif "No media, please insert a CD to read its TOC/ATIP." in out:
+		print ("--------------------------------------------------------")
+		print ("| A blank CD was not detected in the burner. Please    |")
+		print ("| insert a writtable CD if you would like to burn an   |")
+		print ("| audio CD.                                            |")
+		print ("--------------------------------------------------------")
+		print ()
+	elif "Disc type:                  CD-R" in out:
+		print ("!!!!!!!!!!!!!!! Disc Burning !!!!!!!!!!!!!!!")
+		print ("--------------------------------------------------------")
+		print ("| Audio is currently being burned to a CD. Once        |")
+		print ("| complete, the CD will eject. This may take 5         |")
+		print ("| minutes.                                             |")
+		print ("--------------------------------------------------------")
+
+		disc_burn_process = subprocess.Popen(["drutil burn -audio " + sermon_tmp_file_location + " > /dev/null 2>&1"], stdout=subprocess.PIPE, shell=True)
+		time.sleep(5)
+		while disc_burn_process.poll() is None:
+			sys.stdout.write(next(spinner))
+			sys.stdout.flush()
+			time.sleep(0.1)
+			sys.stdout.write('\b')
+		disc_eject_process = subprocess.Popen(["drutil eject"], stdout=subprocess.PIPE, shell=True)
+		cd_burn_success = True
+		print ("!!!!!!!!!!!!!!! Disc Burning Finished !!!!!!!!!!!!!!!")
+		print ()
+	else:
+		print ("--------------------------------------------------------")
+		print ("| An unexpected condition has occured. Please fix it   |")
+		print ("| if you would like to burn an audio CD.               |")
+		print ("--------------------------------------------------------")
+		print ()
+
+	if not cd_burn_success:
+		valid_cd_write_option = False
+		while not valid_cd_write_option:
+			print ("CD writing has failed. Which option would you like to proceed with?")
+			print ("1. Retry (please fix the issue above before selecting this option)")
+			print ("2. Skip CD writing")
+			cd_write_option = input (style.BOLD + "Select an option: " + style.END)
+			if int(cd_write_option) > 0 and int(cd_write_option) < 3:
+				valid_cd_write_option = True
+		if int(cd_write_option) is 2:
+			cd_burn_success = True
+
 print ("!!!!!!!!!!!!!!! Starting Conversion !!!!!!!!!!!!!!!")
 print ("--------------------------------------------------------")
 print ("| Audio is currently being converted from WAV to MP3.  |")
@@ -79,8 +138,6 @@ print ("| is in the drive is this is your intention.           |")
 print ("--------------------------------------------------------")
 convert_process = subprocess.Popen(["lame -h " + sermon_file_full_path_wav + " " + sermon_file_full_path_mp3 + " > /dev/null 2>&1"], stdout=subprocess.PIPE, shell=True)
 
-spinner = itertools.cycle(['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'])
-
 while convert_process.poll() is None:
     sys.stdout.write(next(spinner))
     sys.stdout.flush()
@@ -89,32 +146,6 @@ while convert_process.poll() is None:
 
 print ("!!!!!!!!!!!!!!! Conversion Finished !!!!!!!!!!!!!!!")
 print ()
-
-disc_detected = False
-#disc_check_process = subprocess.Popen(["drutil discinfo"], stdout=subprocess.PIPE, shell=True)
-if disc_detected:
-	print ("!!!!!!!!!!!!!!! Disc Burning !!!!!!!!!!!!!!!")
-	print ("--------------------------------------------------------")
-	print ("| Audio is currently being burned to a CD. Once        |")
-	print ("| complete, the CD will eject. This may take 5         |")
-	print ("| minutes.                                             |")
-	print ("--------------------------------------------------------")
-	
-	#disc_burn_process = subprocess.Popen(["drutil burn -audio " + sermon_file_full_path_mp3], stdout=subprocess.PIPE, shell=True)
-	#while disc_burn_process.poll() is None:
-	#    sys.stdout.write(next(spinner))
-	#    sys.stdout.flush()
-	#    sleep(0.1)
-	#    sys.stdout.write('\b')
-	#disc_eject_process = subprocess.Popen(["drutil eject"], stdout=subprocess.PIPE, shell=True)
-	print ("!!!!!!!!!!!!!!! Disc Burning Finished !!!!!!!!!!!!!!!")
-	print ()
-else:
-	print ("--------------------------------------------------------")
-	print ("| A CD was not detected in the burner. Disc burning    |")
-	print ("| was skipped.                                         |")
-	print ("--------------------------------------------------------")
-	print ()
 
 print ("!!!!!!!!!!!!!!! Audio Uploading to Website !!!!!!!!!!!!!!!")
 print ("--------------------------------------------------------")
@@ -181,7 +212,7 @@ browser.find_element_by_xpath('//button[@id="btn_upload_sermon_uploads"]').click
 sermon_date_month = Select(browser.find_element_by_id('sermon_date'))
 sermon_date_month.select_by_visible_text(sermon_month)
 sermon_date_day = Select(browser.find_element_by_id('sermon_date_day'))
-sermon_date_day.select_by_visible_text(sermon_day)
+sermon_date_day.select_by_visible_text(sermon_day.lstrip("0"))
 sermon_date_year = Select(browser.find_element_by_id('sermon_date_year'))
 sermon_date_year.select_by_visible_text(sermon_year)
 
@@ -229,9 +260,9 @@ else:
 print ("!!!!!!!!!!!!!!! Audio Upload Complete !!!!!!!!!!!!!!!")
 print ()
 
-announce_email = yagmail.SMTP('mileswdavis')
+announce_email = yagmail.SMTP('milleravenuechurch')
 content = ['The audio upload to milleravechurch.com is complete. Please use the web interface (http://www.milleravechurch.com/admin/sermons/) to make it availible to everyone.']
-announce_email.send('mileswdavis@gmail.com', 'MillerAve Sermon Upload Compolete', content)
+announce_email.send('mileswdavis@gmail.com', 'Miller Avenue Sermon Upload Complete', content)
 
 print ("!!!!!!!!!!!!!!! Cleaning Up !!!!!!!!!!!!!!!")
 new_sermon_file_full_path_mp3 = sermon_file_location + sermon_file_name_mp3
