@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium import webdriver
-#import yagmail
+import yagmail
 
 # Location to store the sermons
 sermon_file_location = "~/Sermons/"
@@ -230,7 +230,7 @@ print ("!!!!!!!!!!!!!!! Audio Upload Complete !!!!!!!!!!!!!!!")
 print ()
 
 announce_email = yagmail.SMTP('mileswdavis')
-content = ['The audio upload to milleravechurch.com is complete. Please use the web interface to make it availible to everyyone.']
+content = ['The audio upload to milleravechurch.com is complete. Please use the web interface (http://www.milleravechurch.com/admin/sermons/) to make it availible to everyone.']
 announce_email.send('mileswdavis@gmail.com', 'MillerAve Sermon Upload Compolete', content)
 
 print ("!!!!!!!!!!!!!!! Cleaning Up !!!!!!!!!!!!!!!")
